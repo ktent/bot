@@ -7,7 +7,7 @@ const app = express();
 const port = 3000;
 
 app.use(bodyParser.json());
-
+console.log("안녕하세요 즐거운 시작입니다.")
 // MongoDB 연결
 mongoose.connect('mongodb://localhost:27017/attendance', {
   useNewUrlParser: true,
