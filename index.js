@@ -10,9 +10,13 @@ app.use(bodyParser.json());
 
 // MongoDB 연결
 mongoose.connect('mongodb://mongodb:27017/attendance', {
-    useNewUrlParser: true,  // Optional but not necessary
-    useUnifiedTopology: true // Optional but not necessary
-});
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+  }).then(() => {
+    console.log('MongoDB connected successfully.');
+  }).catch((error) => {
+    console.error('MongoDB connection error:', error.message);
+  });
 
 // 출근 기록 추가
 app.post('/checkin', async (req, res) => {
