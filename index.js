@@ -10,7 +10,7 @@ const app = express();
 const port = process.env.PORT || 3000; // PORT 환경 변수를 사용하거나 기본값 3000을 사용합니다.
 
 app.use(bodyParser.json());
-
+console.log("안녕하세요 즐거운 시작입니다.")
 // MongoDB 연결
 mongoose.connect(process.env.MONGODB_URI, { // MONGODB_URI 환경 변수를 사용합니다.
     useNewUrlParser: true,
