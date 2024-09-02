@@ -1,25 +1,69 @@
-// dotenv 패키지를 로드하여 환경 변수를 사용 가능하게 합니다.
 require('dotenv').config();
-
 const express = require('express');
+const axios = require('axios');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const Attendance = require('./models/Attendance');
 
 const app = express();
-const port = process.env.PORT || 3000; // PORT 환경 변수를 사용하거나 기본값 3000을 사용합니다.
+const port = process.env.PORT || 3000;
 
 app.use(bodyParser.json());
-console.log("안녕하세요 즐거운 시작입니다.")
+console.log("hello, enjoy fun today")
+
 // MongoDB 연결
-mongoose.connect(process.env.MONGODB_URI, { // MONGODB_URI 환경 변수를 사용합니다.
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-  }).then(() => {
-    console.log('MongoDB connected successfully.');
-  }).catch((error) => {
-    console.error('MongoDB connection error:', error.message);
-  });
+mongoose.connect(process.env.MONGODB_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+}).then(() => {
+  console.log('MongoDB connected successfully.');
+}).catch((error) => {
+  console.error('MongoDB connection error:', error.message);
+});
+
+// 카카오 로그인 인증
+app.get('/auth/kakao', (req, res) => {
+  const authUrl = `https://kauth.kakao.com/oauth/authorize?client_id=${process.env.KAKAO_CLIENT_ID}&redirect_uri=${process.env.KAKAO_REDIRECT_URI}&response_type=code`;
+  res.redirect(authUrl);
+});
+
+app.get('/auth/kakao/callback', async (req, res) => {
+  const { code } = req.query;
+
+  try {
+    // Authorization code로 액세스 토큰 요청
+    const tokenResponse = await axios.post('https://kauth.kakao.com/oauth/token', null, {
+      params: {
+        grant_type: 'authorization_code',
+        client_id: process.env.KAKAO_CLIENT_ID,
+        client_secret: process.env.KAKAO_CLIENT_SECRET,
+        redirect_uri: process.env.KAKAO_REDIRECT_URI,
+        code
+      },
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      }
+    });
+
+    const accessToken = tokenResponse.data.access_token;
+
+    // 사용자 정보 요청
+    const userResponse = await axios.get('https://kapi.kakao.com/v2/user/me', {
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      },
+      params: {
+        property_keys: JSON.stringify(['kakao_account.profile.nickname']),
+        secure_resource: true
+      }
+    });
+
+    const user = userResponse.data;
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // 출근 기록 추가
 app.post('/checkin', async (req, res) => {

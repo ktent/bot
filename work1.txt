@@ -9,3 +9,8 @@
 1010101
 
 10101010
+
+
+
+
+console.log("hello, enjoy fun today")
