@@ -58,7 +58,7 @@ app.get('/auth/kakao/callback', async (req, res) => {
 
     const userResponse = await axios.get('https://kapi.kakao.com/v2/user/me', {
       headers: {
-        Authorization: `Bearer ${IqSFb53ZffYZjZYpDV-t05lIOcnmC3jyAAAAAQo9c04AAAGRsqY97nLErHmNOyL0}`
+        Authorization: `Bearer ${accessToken}`
       },
       params: {
         property_keys: JSON.stringify(['kakao_account.profile.nickname']),
