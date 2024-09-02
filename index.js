@@ -9,9 +9,9 @@ const port = 3000;
 app.use(bodyParser.json());
 
 // MongoDB 연결
-mongoose.connect('mongodb://localhost:27017/attendance', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
+mongoose.connect('mongodb://mongodb:27017/attendance', {
+    useNewUrlParser: true,  // Optional but not necessary
+    useUnifiedTopology: true // Optional but not necessary
 });
 
 // 출근 기록 추가
