@@ -57,9 +57,9 @@ mongoose.connect(process.env.MONGODB_URI)
   });
 
 // 출근 기록 추가
-app.post('/checkin', async (req, res) => {
+aapp.post('/checkin', async (req, res) => {
     try {
-      const botUserKey = req.body.userRequest?.user?.id;  // userRequest.user.id로부터 botUserKey를 추출
+      const botUserKey = req.body.userRequest?.user?.id;
   
       if (!botUserKey) {
         return res.status(400).json({ message: 'botUserKey is required.' });
@@ -86,19 +86,7 @@ app.post('/checkin', async (req, res) => {
       res.status(500).json({ error: 'Check-in failed.' });
     }
   });
-
-    // 응답 설정을 참조하여 동적 메시지 생성
-    const responseMessage = `성공적으로 출근되었습니다. 날짜: ${formattedDate}`;
-    
-    res.status(201).json({
-      message: responseMessage,
-      // 기타 응답 설정 관련 데이터가 있을 수 있습니다.
-    });
-  } catch (error) {
-    console.error('Error during check-in:', error.message);
-    res.status(500).json({ error: 'Check-in failed.' });
-  }
-});
+  
 
 // 출근 취소 기록 추가
 app.post('/checkout', async (req, res) => {
