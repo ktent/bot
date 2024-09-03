@@ -80,7 +80,7 @@ app.post('/checkin', async (req, res) => {
         template: {
           outputs: [{
             simpleText: {
-              text: `${formattedDate} 출근하셨습니다.`
+              text: `${formattedDate} 휴무입니다.`
             }
           }]
         }
@@ -88,91 +88,6 @@ app.post('/checkin', async (req, res) => {
     } catch (error) {
       console.error('Error during check-in:', error);
       res.status(500).json({ error: 'Check-in failed.' });
-    }
-  });
-  
-
-// 출근 취소 기록 추가
-app.post('/checkout', async (req, res) => {
-  try {
-    const botUserKey = req.body.action?.params?.botUserKey;
-    if (!botUserKey) {
-      return res.status(400).json({ message: 'botUserKey is required.' });
-    }
-    const today = new Date();
-    const startDate = new Date(today.setHours(0, 0, 0, 0));
-    const endDate = new Date(today.setHours(23, 59, 59, 999));
-    const checkInRecord = await Attendance.findOne({
-      userId: botUserKey,
-      status: 'IN',
-      date: {
-        $gte: startDate,
-        $lte: endDate
-      }
-    });
-    if (!checkInRecord) {
-      return res.status(400).json({ message: 'No check-in record found for today.' });
-    }
-    checkInRecord.status = 'OUT';
-    await checkInRecord.save();
-    res.status(200).json({ message: 'Checked out successfully!' });
-  } catch (error) {
-    console.error('Error during check-out:', error.message);
-    res.status(500).json({ error: 'Check-out failed.' });
-  }
-});
-
-// 월 단위 출근 현황 조회
-app.post('/attendance', async (req, res) => {
-    try {
-      const userId = req.body.userRequest?.user?.id; // userId를 요청에서 가져옵니다
-      const month = req.body.action?.params?.month || '2024-09'; // 월 값을 요청에서 가져옵니다. 기본값 설정.
-  
-      if (!userId) {
-        return res.status(400).json({ message: 'userId is required.' });
-      }
-  
-      const [year, monthNumber] = month.split('-').map(Number);
-      const startDate = new Date(year, monthNumber - 1, 1);
-      const endDate = new Date(year, monthNumber, 0);
-      
-      const attendanceRecords = await Attendance.find({
-        userId,
-        date: {
-          $gte: startDate,
-          $lte: endDate
-        }
-      });
-  
-      if (attendanceRecords.length === 0) {
-        return res.json({
-          version: "2.0",
-          template: {
-            outputs: [{
-              simpleText: {
-                text: `${month}월의 출근 기록이 없습니다.`
-              }
-            }]
-          }
-        });
-      }
-  
-      const dates = attendanceRecords.map(record => record.date.toISOString().split('T')[0]).join(', ');
-      const responseText = `${month}월의 출근 날짜: ${dates}`;
-  
-      res.json({
-        version: "2.0",
-        template: {
-          outputs: [{
-            simpleText: {
-              text: responseText
-            }
-          }]
-        }
-      });
-    } catch (error) {
-      console.error('출근 기록을 가져오는 중 오류 발생:', error.message);
-      res.status(500).json({ error: '출근 기록을 가져오는 데 실패했습니다.' });
     }
   });
   
