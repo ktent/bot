@@ -65,19 +65,27 @@ app.post('/checkin', async (req, res) => {
         return res.status(400).json({ message: 'botUserKey is required.' });
       }
   
-      const now = new Date();
-    const formattedDate = now.toLocaleDateString('ko-KR', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
-    });
-
-    const attendance = new Attendance({
-      userId: botUserKey,
-      date: now,
-      status: 'IN'
-    });
-    await attendance.save();
+      const attendance = new Attendance({
+        userId: botUserKey,
+        date: new Date(),
+        status: 'IN'
+      });
+      await attendance.save();
+  
+      const checkinDate = new Date();
+      const formattedDate = `${checkinDate.getFullYear()}년 ${checkinDate.getMonth() + 1}월 ${checkinDate.getDate()}일`;
+  
+      res.json({
+        version: "2.0",
+        data: {
+          msg: `${formattedDate} 출근하셨습니다.`
+        }
+      });
+    } catch (error) {
+      console.error('Error during check-in:', error.message);
+      res.status(500).json({ error: 'Check-in failed.' });
+    }
+  });
 
     // 응답 설정을 참조하여 동적 메시지 생성
     const responseMessage = `성공적으로 출근되었습니다. 날짜: ${formattedDate}`;
