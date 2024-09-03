@@ -134,7 +134,101 @@ app.post('/checkin', async (req, res) => {
     }
 });
 
-  
+  // 출근 취소 기록 추가
+  app.post('/checkout', async (req, res) => {
+    try {
+        const botUserKey = req.body.action?.params?.botUserKey;
+
+        if (!botUserKey) {
+            return res.status(400).json({ message: 'botUserKey is required.' });
+        }
+
+        const today = new Date();
+        const startDate = new Date(today.setHours(0, 0, 0, 0));
+        const endDate = new Date(today.setHours(23, 59, 59, 999));
+
+        // 오늘의 체크인 기록을 삭제합니다.
+        const deleteResult = await Attendance.deleteOne({
+            userId: botUserKey,
+            status: 'IN',
+            date: {
+                $gte: startDate,
+                $lte: endDate
+            }
+        });
+
+        if (deleteResult.deletedCount === 0) {
+            return res.status(400).json({ message: 'No check-in record found for today.' });
+        }
+
+        // 날짜 형식을 "몇월 몇일"로 변환
+        const checkoutDate = new Date();
+        const formattedDate = `${checkoutDate.getMonth() + 1}월 ${checkoutDate.getDate()}일`;
+
+        // 성공적으로 체크아웃되었음을 응답
+        res.status(200).json({
+            version: "2.0",
+            template: {
+                outputs: [{
+                    simpleText: {
+                        text: `${formattedDate} 휴무일 기록이 삭제되었습니다.`
+                    }
+                }]
+            }
+        });
+    } catch (error) {
+        console.error('Error during check-out:', error.message);
+        res.status(500).json({ error: 'Check-out failed.' });
+    }
+});
+
+// '/today' 경로로 오늘 날짜에 체크인 여부 확인
+app.post('/today', async (req, res) => {
+    try {
+        const botUserKey = req.body.userRequest?.user?.id;
+
+        if (!botUserKey) {
+            return res.status(400).json({ message: 'botUserKey is required.' });
+        }
+
+        const today = new Date();
+        const startDate = new Date(today.setHours(0, 0, 0, 0));
+        const endDate = new Date(today.setHours(23, 59, 59, 999));
+
+        const existingRecord = await Attendance.findOne({
+            userId: botUserKey,
+            status: 'IN',
+            date: {
+                $gte: startDate,
+                $lte: endDate
+            }
+        });
+
+        let responseMessage = '';
+
+        if (existingRecord) {
+            responseMessage = '오늘은 휴무일입니다.';
+        } else {
+            responseMessage = '오늘은 출근하셨습니다.';
+        }
+
+        res.json({
+            version: "2.0",
+            template: {
+                outputs: [{
+                    simpleText: {
+                        text: responseMessage
+                    }
+                }]
+            }
+        });
+
+    } catch (error) {
+        console.error('Error during today check:', error.message);
+        res.status(500).json({ error: 'Failed to check today\'s attendance status.' });
+    }
+});
+
 
 // 헬스 체크 엔드포인트
 app.get('/health', (req, res) => {
