@@ -96,19 +96,12 @@ app.post('/checkin', async (req, res) => {
 app.post('/checkout', async (req, res) => {
   try {
     const botUserKey = req.body.action?.params?.botUserKey;
-    const responseType = req.body.responseType; // 응답 형식 (예: 'json' 또는 'text')
-
     if (!botUserKey) {
-      if (responseType === 'text') {
-        return res.status(400).send('botUserKey is required.');
-      }
       return res.status(400).json({ message: 'botUserKey is required.' });
     }
-
     const today = new Date();
     const startDate = new Date(today.setHours(0, 0, 0, 0));
     const endDate = new Date(today.setHours(23, 59, 59, 999));
-    
     const checkInRecord = await Attendance.findOne({
       userId: botUserKey,
       status: 'IN',
@@ -117,71 +110,72 @@ app.post('/checkout', async (req, res) => {
         $lte: endDate
       }
     });
-
     if (!checkInRecord) {
-      if (responseType === 'text') {
-        return res.status(400).send('No check-in record found for today.');
-      }
       return res.status(400).json({ message: 'No check-in record found for today.' });
     }
-
     checkInRecord.status = 'OUT';
     await checkInRecord.save();
-
-    if (responseType === 'text') {
-      return res.status(200).send('Checked out successfully!');
-    }
-    return res.status(200).json({ message: 'Checked out successfully!' });
-
+    res.status(200).json({ message: 'Checked out successfully!' });
   } catch (error) {
     console.error('Error during check-out:', error.message);
-
-    if (responseType === 'text') {
-      return res.status(500).send('Check-out failed.');
-    }
-    return res.status(500).json({ error: 'Check-out failed.' });
+    res.status(500).json({ error: 'Check-out failed.' });
   }
 });
-
 
 // 월 단위 출근 현황 조회
 app.post('/attendance', async (req, res) => {
-  try {
-    const { userId } = req.body.userRequest.user; // userId를 요청에서 가져옵니다
-    const month = '2024-09'; // 예시로 정의된 월, 실제 요청 시 적절한 값을 제공해야 합니다
-
-    const [year, monthNumber] = month.split('-').map(Number);
-    const startDate = new Date(year, monthNumber - 1, 1);
-    const endDate = new Date(year, monthNumber, 0);
-    const attendanceRecords = await Attendance.find({
-      userId,
-      date: {
-        $gte: startDate,
-        $lte: endDate
+    try {
+      const userId = req.body.userRequest?.user?.id; // userId를 요청에서 가져옵니다
+      const month = req.body.action?.params?.month || '2024-09'; // 월 값을 요청에서 가져옵니다. 기본값 설정.
+  
+      if (!userId) {
+        return res.status(400).json({ message: 'userId is required.' });
       }
-    });
-
-    const dates = attendanceRecords.map(record => record.date.toISOString().split('T')[0]).join(', ');
-    const responseText = `${month}월의 출근 날짜: ${dates}`;
-
-    res.json({
-      version: "2.0",
-      template: {
-        outputs: [{
-          simpleText: {
-            text: responseText
+  
+      const [year, monthNumber] = month.split('-').map(Number);
+      const startDate = new Date(year, monthNumber - 1, 1);
+      const endDate = new Date(year, monthNumber, 0);
+      
+      const attendanceRecords = await Attendance.find({
+        userId,
+        date: {
+          $gte: startDate,
+          $lte: endDate
+        }
+      });
+  
+      if (attendanceRecords.length === 0) {
+        return res.json({
+          version: "2.0",
+          template: {
+            outputs: [{
+              simpleText: {
+                text: `${month}월의 출근 기록이 없습니다.`
+              }
+            }]
           }
-        }]
+        });
       }
-    });
-  } catch (error) {
-    console.error('출근 기록을 가져오는 중 오류 발생:', error.message);
-    res.status(500).json({ error: '출근 기록을 가져오는 데 실패했습니다.' });
-  }
-});
-
-
-
+  
+      const dates = attendanceRecords.map(record => record.date.toISOString().split('T')[0]).join(', ');
+      const responseText = `${month}월의 출근 날짜: ${dates}`;
+  
+      res.json({
+        version: "2.0",
+        template: {
+          outputs: [{
+            simpleText: {
+              text: responseText
+            }
+          }]
+        }
+      });
+    } catch (error) {
+      console.error('출근 기록을 가져오는 중 오류 발생:', error.message);
+      res.status(500).json({ error: '출근 기록을 가져오는 데 실패했습니다.' });
+    }
+  });
+  
 
 // 헬스 체크 엔드포인트
 app.get('/health', (req, res) => {
