@@ -78,7 +78,14 @@ app.post('/checkin', async (req, res) => {
       status: 'IN'
     });
     await attendance.save();
-    res.status(201).json({ message: `성공적으로 출근되었습니다. 날짜: ${formattedDate}` });
+
+    // 응답 설정을 참조하여 동적 메시지 생성
+    const responseMessage = `성공적으로 출근되었습니다. 날짜: ${formattedDate}`;
+    
+    res.status(201).json({
+      message: responseMessage,
+      // 기타 응답 설정 관련 데이터가 있을 수 있습니다.
+    });
   } catch (error) {
     console.error('Error during check-in:', error.message);
     res.status(500).json({ error: 'Check-in failed.' });
