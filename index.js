@@ -64,16 +64,17 @@ app.post('/leehoyoung', (req, res) => {
         botUserKey = '이호영';
         console.log('botUserKey has been set to:', botUserKey); // 로그를 통해 값이 제대로 설정되었는지 확인
 
-        res.status(200).json({
+        res.json({
             version: "2.0",
             template: {
                 outputs: [{
                     simpleText: {
-                        text: '이호영님 안녕하세요, 휴무일에 휴무라고 적어주시면 기록이 됩니다.'
+                        text: 이호영님 안녕하세요 휴무일 기록하시려면 휴무라고 적어주세요.
                     }
                 }]
             }
         });
+
     } catch (error) {
         console.error('Error in /leehoyoung endpoint:', error.message);
         res.status(500).json({ error: 'Internal Server Error' });
@@ -130,7 +131,7 @@ app.post('/checkin', async (req, res) => {
             template: {
                 outputs: [{
                     simpleText: {
-                        text: `${formattedDate} 출근하셨습니다.`
+                        text: `${formattedDate} 휴무일로 기록되었습니다.`
                     }
                 }]
             }
@@ -199,14 +200,19 @@ app.post('/today', async (req, res) => {
             return res.status(400).json({ message: 'botUserKey is required.' });
         }
 
-        console.log('Received botUserKey:', botUserKey); // 로그 추가
+        // botUserKey가 특정 값이면 사용자 이름으로 변경
+        const userKeyToSearch = (botUserKey === '특정_값') ? '이호영' : botUserKey;
 
-        const today = new Date();
-        const startDate = new Date(today.setHours(0, 0, 0, 0));
-        const endDate = new Date(today.setHours(23, 59, 59, 999));
+        // 서울 시간대 설정
+        const koreaTime = new Date().toLocaleString("en-US", { timeZone: "Asia/Seoul" });
+        const currentDate = new Date(koreaTime);
+
+        // 오늘 날짜를 기준으로 체크인 기록 확인
+        const startDate = new Date(currentDate.setHours(0, 0, 0, 0));
+        const endDate = new Date(currentDate.setHours(23, 59, 59, 999));
 
         const existingRecord = await Attendance.findOne({
-            userId: botUserKey,
+            userId: userKeyToSearch,
             status: 'IN',
             date: {
                 $gte: startDate,
@@ -217,12 +223,10 @@ app.post('/today', async (req, res) => {
         let responseMessage = '';
 
         if (existingRecord) {
-            responseMessage = '오늘은 출근하셨습니다.';
+            responseMessage = `오늘은 출근하셨습니다. 출근 시간: ${existingRecord.date.toLocaleString('ko-KR')}`;
         } else {
             responseMessage = '오늘은 출근 기록이 없습니다.';
         }
-
-        console.log('Response message:', responseMessage); // 로그 추가
 
         res.json({
             version: "2.0",
@@ -239,6 +243,7 @@ app.post('/today', async (req, res) => {
         res.status(500).json({ error: 'Failed to check today\'s attendance status.' });
     }
 });
+
 
 
 
