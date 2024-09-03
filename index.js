@@ -57,22 +57,29 @@ mongoose.connect(process.env.MONGODB_URI)
   });
   let botUserKey = null;  // 전역 변수로 botUserKey를 선언하여 다른 엔드포인트에서 접근 가능하게 함
 
-  // '/leehoyoung' 경로로 들어오면 botUserKey를 '이호영'으로 설정
-  app.post('/leehoyoung', (req, res) => {
-      botUserKey = '이호영';
-      res.status(200).json({
-          version: "2.0",
-          template: {
-              outputs: [{
-                  simpleText: {
-                      text: '이호영님 안녕하세요, 휴무일에 휴무라고 적어주시면 기록이 됩니다.'
-                  }
-              }]
-          }
-      });
-  });
-  
-  
+
+// '/leehoyoung' 경로로 들어오면 botUserKey를 '이호영'으로 설정
+app.post('/leehoyoung', (req, res) => {
+    try {
+        botUserKey = '이호영';
+        console.log('botUserKey has been set to:', botUserKey); // 로그를 통해 값이 제대로 설정되었는지 확인
+
+        res.status(200).json({
+            version: "2.0",
+            template: {
+                outputs: [{
+                    simpleText: {
+                        text: '이호영님 안녕하세요, 휴무일에 휴무라고 적어주시면 기록이 됩니다.'
+                    }
+                }]
+            }
+        });
+    } catch (error) {
+        console.error('Error in /leehoyoung endpoint:', error.message);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
 // 출근 기록 추가
 app.post('/checkin', async (req, res) => {
     try {
@@ -192,6 +199,8 @@ app.post('/today', async (req, res) => {
             return res.status(400).json({ message: 'botUserKey is required.' });
         }
 
+        console.log('Received botUserKey:', botUserKey); // 로그 추가
+
         const today = new Date();
         const startDate = new Date(today.setHours(0, 0, 0, 0));
         const endDate = new Date(today.setHours(23, 59, 59, 999));
@@ -208,10 +217,12 @@ app.post('/today', async (req, res) => {
         let responseMessage = '';
 
         if (existingRecord) {
-            responseMessage = '오늘은 휴무일입니다.';
-        } else {
             responseMessage = '오늘은 출근하셨습니다.';
+        } else {
+            responseMessage = '오늘은 출근 기록이 없습니다.';
         }
+
+        console.log('Response message:', responseMessage); // 로그 추가
 
         res.json({
             version: "2.0",
@@ -223,12 +234,12 @@ app.post('/today', async (req, res) => {
                 }]
             }
         });
-
     } catch (error) {
         console.error('Error during today check:', error.message);
         res.status(500).json({ error: 'Failed to check today\'s attendance status.' });
     }
 });
+
 
 
 // 헬스 체크 엔드포인트
