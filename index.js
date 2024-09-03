@@ -34,7 +34,7 @@ mongoose.connect(process.env.MONGODB_URI, {
 app.post('/checkin', async (req, res) => {
     try {
       // 요청 본문에서 userId를 추출
-      const botUserKey = req.body.params?.botUserKey || req.body.action?.params?.botUserKey;
+      const botUserKey = req.body.action?.params?.botUserKey;
   
       if (!botUserKey) {
         return res.status(400).json({ message: 'botUserKey is required.' });
@@ -54,12 +54,11 @@ app.post('/checkin', async (req, res) => {
     }
   });
   
-
-// 출근 취소 기록 추가
-app.post('/checkout', async (req, res) => {
+  // 출근 취소 기록 추가
+  app.post('/checkout', async (req, res) => {
     try {
       // 요청 본문에서 userId를 추출
-      const botUserKey = req.body.params?.botUserKey || req.body.action?.params?.botUserKey;
+      const botUserKey = req.body.action?.params?.botUserKey;
   
       if (!botUserKey) {
         return res.status(400).json({ message: 'botUserKey is required.' });
@@ -92,6 +91,7 @@ app.post('/checkout', async (req, res) => {
       res.status(500).json({ error: 'Check-out failed.' });
     }
   });
+  
   
 
 // 월 단위 출근 현황 조회
