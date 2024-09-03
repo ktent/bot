@@ -10,7 +10,7 @@ const port = process.env.PORT || 3000;
 
 // CORS 설정
 app.use(cors({
-  origin: '*', // 필요한 경우 특정 도메인으로 제한할 수 있습니다. 예: ['https://example.com']
+  origin: '*',
   methods: ['GET', 'POST'],
   allowedHeaders: ['Content-Type']
 }));
@@ -19,7 +19,7 @@ app.use(bodyParser.json());
 console.log("hello, enjoy fun today");
 
 // MongoDB 연결
-mongoose.connect(process.env.mongodb://mongodb:27017/, {
+mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 })
@@ -33,14 +33,16 @@ mongoose.connect(process.env.mongodb://mongodb:27017/, {
 // 출근 기록 추가
 app.post('/checkin', async (req, res) => {
   try {
+    // botUserKey를 추출
     const botUserKey = req.body.params?.botUserKey || req.body.action?.params?.botUserKey;
 
     if (!botUserKey) {
       return res.status(400).json({ message: 'botUserKey is required.' });
     }
 
+    // 출근 기록 생성 및 저장
     const attendance = new Attendance({
-      userId: botUserKey,
+      userId: botUserKey,  // userId로 botUserKey 설정
       date: new Date(),
       status: 'IN'
     });
@@ -55,6 +57,7 @@ app.post('/checkin', async (req, res) => {
 // 출근 취소 기록 추가
 app.post('/checkout', async (req, res) => {
   try {
+    // botUserKey를 추출
     const botUserKey = req.body.params?.botUserKey || req.body.action?.params?.botUserKey;
 
     if (!botUserKey) {
@@ -65,6 +68,7 @@ app.post('/checkout', async (req, res) => {
     const startDate = new Date(today.setHours(0, 0, 0, 0));
     const endDate = new Date(today.setHours(23, 59, 59, 999));
 
+    // 출근 기록 찾기
     const checkInRecord = await Attendance.findOne({
       userId: botUserKey,
       status: 'IN',
@@ -78,6 +82,7 @@ app.post('/checkout', async (req, res) => {
       return res.status(400).json({ message: 'No check-in record found for today.' });
     }
 
+    // 출근 기록 상태를 'OUT'으로 변경 및 저장
     checkInRecord.status = 'OUT';
     await checkInRecord.save();
     res.status(200).json({ message: 'Checked out successfully!' });
