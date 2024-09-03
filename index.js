@@ -3,21 +3,31 @@ const express = require('express');
 const axios = require('axios');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
+const cors = require('cors');
 const Attendance = require('./models/Attendance');
 
 const app = express();
 const port = process.env.PORT || 3000;
 
+// CORS 설정
+app.use(cors({
+  origin: '*', // 필요한 경우 특정 도메인으로 제한할 수 있습니다. 예: ['https://example.com']
+  methods: ['GET', 'POST'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 app.use(bodyParser.json());
-console.log("hello, enjoy fun today")
+console.log("hello, enjoy fun today");
 
 // MongoDB 연결
 mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true
-}).then(() => {
+})
+.then(() => {
   console.log('MongoDB connected successfully.');
-}).catch((error) => {
+})
+.catch((error) => {
   console.error('MongoDB connection error:', error.message);
 });
 
@@ -31,7 +41,6 @@ app.get('/auth/kakao/callback', async (req, res) => {
   const { code } = req.query;
 
   try {
-    // Authorization code로 액세스 토큰 요청
     const tokenResponse = await axios.post('https://kauth.kakao.com/oauth/token', null, {
       params: {
         grant_type: 'authorization_code',
@@ -47,7 +56,6 @@ app.get('/auth/kakao/callback', async (req, res) => {
 
     const accessToken = tokenResponse.data.access_token;
 
-    // 사용자 정보 요청
     const userResponse = await axios.get('https://kapi.kakao.com/v2/user/me', {
       headers: {
         Authorization: `Bearer ${accessToken}`
@@ -61,67 +69,90 @@ app.get('/auth/kakao/callback', async (req, res) => {
     const user = userResponse.data;
     res.json(user);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Error during Kakao authentication:', error.message);
+    res.status(500).json({ error: 'Kakao authentication failed.' });
   }
 });
 
 // 출근 기록 추가
 app.post('/checkin', async (req, res) => {
   try {
-    const { userId } = req.body;
+    const { botUserKey } = req.body;
     const attendance = new Attendance({
-      userId,
+      userId: botUserKey, // userId를 botUserKey로 변경
       date: new Date(),
       status: 'IN'
     });
     await attendance.save();
     res.status(201).json({ message: 'Checked in successfully!' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Error during check-in:', error.message);
+    res.status(500).json({ error: 'Check-in failed.' });
   }
 });
 
 // 출근 취소 기록 추가
 app.post('/checkout', async (req, res) => {
   try {
-    const { userId } = req.body;
+    const { botUserKey } = req.body;
+    const today = new Date();
+    const startDate = new Date(today.setHours(0, 0, 0, 0));
+    const endDate = new Date(today.setHours(23, 59, 59, 999));
+    
     const checkInRecord = await Attendance.findOne({
-      userId,
+      userId: botUserKey, // userId를 botUserKey로 변경
       status: 'IN',
-      date: {
-        $gte: new Date(new Date().setHours(0, 0, 0, 0)),
-        $lte: new Date()
-      }
-    });
-    if (!checkInRecord) {
-      return res.status(400).json({ message: 'No check-in record found for today.' });
-    }
-    checkInRecord.status = 'OUT';
-    await checkInRecord.save();
-    res.status(200).json({ message: 'Checked out successfully!' });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// 월 단위 출근 현황 조회
-app.get('/attendance/:userId/:month', async (req, res) => {
-  try {
-    const { userId, month } = req.params;
-    const [year, monthNumber] = month.split('-').map(Number);
-    const startDate = new Date(year, monthNumber - 1, 1);
-    const endDate = new Date(year, monthNumber, 0);
-    const attendanceRecords = await Attendance.find({
-      userId,
       date: {
         $gte: startDate,
         $lte: endDate
       }
     });
+
+    if (!checkInRecord) {
+      return res.status(400).json({ message: 'No check-in record found for today.' });
+    }
+
+    checkInRecord.status = 'OUT';
+    await checkInRecord.save();
+    res.status(200).json({ message: 'Checked out successfully!' });
+  } catch (error) {
+    console.error('Error during check-out:', error.message);
+    res.status(500).json({ error: 'Check-out failed.' });
+  }
+});
+
+// 월 단위 출근 현황 조회
+app.get('/attendance/:botUserKey/:month', async (req, res) => {
+  try {
+    const { botUserKey, month } = req.params;
+    const [year, monthNumber] = month.split('-').map(Number);
+    const startDate = new Date(year, monthNumber - 1, 1);
+    const endDate = new Date(year, monthNumber, 0);
+    
+    const attendanceRecords = await Attendance.find({
+      userId: botUserKey, // userId를 botUserKey로 변경
+      date: {
+        $gte: startDate,
+        $lte: endDate
+      }
+    });
+
     res.status(200).json(attendanceRecords);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Error fetching attendance records:', error.message);
+    res.status(500).json({ error: 'Failed to fetch attendance records.' });
   }
+});
+
+// 헬스 체크 엔드포인트
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'OK' });
+});
+
+// 에러 처리 미들웨어
+app.use((err, req, res, next) => {
+  console.error('Server error:', err.message);
+  res.status(500).json({ error: 'An unexpected error occurred.' });
 });
 
 app.listen(port, () => {
