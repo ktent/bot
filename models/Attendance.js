@@ -1,19 +1,7 @@
-const mongoose = require('mongoose');
-
-const attendanceSchema = new mongoose.Schema({
-  userId: {
-    type: String,
-    required: true, // userId는 필수입니다.
-  },
-  date: {
-    type: Date,
-    default: Date.now,
-  },
-  status: {
-    type: String,
-    enum: ['IN', 'OUT'],
-    required: true,
-  }
-});
-
-module.exports = mongoose.model('Attendance', attendanceSchema);
+mongoose.connect(process.env.MONGODB_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+  })
+  .then(() => console.log('MongoDB connected successfully.'))
+  .catch(error => console.error('MongoDB connection error:', error.message));
+  
