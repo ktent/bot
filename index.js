@@ -57,7 +57,7 @@ mongoose.connect(process.env.MONGODB_URI)
   });
 
 // 출근 기록 추가
-aapp.post('/checkin', async (req, res) => {
+app.post('/checkin', async (req, res) => {
     try {
       const botUserKey = req.body.userRequest?.user?.id;
   
@@ -73,16 +73,20 @@ aapp.post('/checkin', async (req, res) => {
       await attendance.save();
   
       const checkinDate = new Date();
-      const formattedDate = `${checkinDate.getFullYear()}년 ${checkinDate.getMonth() + 1}월 ${checkinDate.getDate()}일`;
+      const formattedDate = `${checkinDate.getMonth() + 1}월 ${checkinDate.getDate()}일`;
   
       res.json({
         version: "2.0",
-        data: {
-          msg: `${formattedDate} 출근하셨습니다.`
+        template: {
+          outputs: [{
+            simpleText: {
+              text: `${formattedDate} 출근하셨습니다.`
+            }
+          }]
         }
       });
     } catch (error) {
-      console.error('Error during check-in:', error.message);
+      console.error('Error during check-in:', error);
       res.status(500).json({ error: 'Check-in failed.' });
     }
   });
