@@ -11,7 +11,7 @@ const port = process.env.PORT || 3000;
 
 // CORS 설정
 app.use(cors({
-  origin: '*',
+  origin: '*',  // 모든 도메인 허용, 필요한 경우 특정 도메인만 허용하도록 변경 가능
   methods: ['GET', 'POST'],
   allowedHeaders: ['Content-Type']
 }));
@@ -20,9 +20,10 @@ app.use(bodyParser.json());
 console.log("hello, enjoy fun today");
 
 // MongoDB 연결
-mongoose.connect(process.env.MONGODB_URI, {
+mongoose.connect(process.env.mongodb:27017, {
   useNewUrlParser: true,
-  useUnifiedTopology: true
+  useUnifiedTopology: true,
+  serverSelectionTimeoutMS: 30000 // 서버 선택 타임아웃을 30초로 설정
 })
 .then(() => {
   console.log('MongoDB connected successfully.');
