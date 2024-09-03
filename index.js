@@ -58,57 +58,53 @@ mongoose.connect(process.env.MONGODB_URI)
 
 // 출근 기록 추가
 app.post('/checkin', async (req, res) => {
-    try {
-      const botUserKey = req.body.action?.params?.botUserKey;
-      // botUserKey 형식 검증 (예: UUID 형식)
-      const botUserKeyPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      if (!botUserKey || !botUserKeyPattern.test(botUserKey)) {
-        return res.status(400).json({ message: '유효한 botUserKey가 필요합니다.' });
-      }
-      const attendance = new Attendance({
-        userId: botUserKey,
-        date: new Date(),
-        status: 'IN'
-      });
-      await attendance.save();
-      res.status(201).json({ message: '출근 기록이 성공적으로 추가되었습니다!' });
-    } catch (error) {
-      console.error('출근 기록 추가 중 오류 발생:', error.message);
-      res.status(500).json({ error: '출근 기록 추가에 실패했습니다.' });
+  try {
+    const botUserKey = req.body.action?.params?.user?.id;
+    if (!botUserKey) {
+      return res.status(400).json({ message: 'botUserKey is required.' });
     }
-  });
-  
-  // 출근 취소 기록 추가
-  app.post('/checkout', async (req, res) => {
-    try {
-      const botUserKey = req.body.action?.params?.botUserKey;
-      // botUserKey 형식 검증
-      const botUserKeyPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      if (!botUserKey || !botUserKeyPattern.test(botUserKey)) {
-        return res.status(400).json({ message: '유효한 botUserKey가 필요합니다.' });
-      }
-      const today = new Date();
-      const startDate = new Date(today.setHours(0, 0, 0, 0));
-      const endDate = new Date(today.setHours(23, 59, 59, 999));
-      const checkInRecord = await Attendance.findOne({
-        userId: botUserKey,
-        status: 'IN',
-        date: {
-          $gte: startDate,
-          $lte: endDate
-        }
-      });
-      if (!checkInRecord) {
-        return res.status(400).json({ message: '오늘의 출근 기록이 없습니다.' });
-      }
-      checkInRecord.status = 'OUT';
-      await checkInRecord.save();
-      res.status(200).json({ message: '출근 취소가 성공적으로 완료되었습니다!' });
-    } catch (error) {
-      console.error('출근 취소 중 오류 발생:', error.message);
-      res.status(500).json({ error: '출근 취소에 실패했습니다.' });
+    const attendance = new Attendance({
+      userId: botUserKey,
+      date: new Date(),
+      status: 'IN'
+    });
+    await attendance.save();
+    res.status(201).json({ message: 'Checked in successfully!' });
+  } catch (error) {
+    console.error('Error during check-in:', error.message);
+    res.status(500).json({ error: 'Check-in failed.' });
+  }
+});
+
+// 출근 취소 기록 추가
+app.post('/checkout', async (req, res) => {
+  try {
+    const botUserKey = req.body.action?.params?.botUserKey;
+    if (!botUserKey) {
+      return res.status(400).json({ message: 'botUserKey is required.' });
     }
-  });
+    const today = new Date();
+    const startDate = new Date(today.setHours(0, 0, 0, 0));
+    const endDate = new Date(today.setHours(23, 59, 59, 999));
+    const checkInRecord = await Attendance.findOne({
+      userId: botUserKey,
+      status: 'IN',
+      date: {
+        $gte: startDate,
+        $lte: endDate
+      }
+    });
+    if (!checkInRecord) {
+      return res.status(400).json({ message: 'No check-in record found for today.' });
+    }
+    checkInRecord.status = 'OUT';
+    await checkInRecord.save();
+    res.status(200).json({ message: 'Checked out successfully!' });
+  } catch (error) {
+    console.error('Error during check-out:', error.message);
+    res.status(500).json({ error: 'Check-out failed.' });
+  }
+});
 
 // 월 단위 출근 현황 조회
 app.get('/attendance/:userId/:month', async (req, res) => {
