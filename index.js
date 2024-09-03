@@ -1,4 +1,3 @@
-require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
 const mongoose = require('mongoose');
@@ -11,7 +10,7 @@ const port = process.env.PORT || 3000;
 
 // CORS 설정
 app.use(cors({
-  origin: '*', // 필요한 경우 특정 도메인으로 제한할 수 있습니다. 예: ['https://example.com']
+  origin: '*',
   methods: ['GET', 'POST'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -51,7 +50,8 @@ app.get('/auth/kakao/callback', async (req, res) => {
       },
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded'
-      }
+      },
+      timeout: 5000 // 타임아웃 설정 (5초)
     });
 
     const accessToken = tokenResponse.data.access_token;
@@ -63,7 +63,8 @@ app.get('/auth/kakao/callback', async (req, res) => {
       params: {
         property_keys: JSON.stringify(['kakao_account.profile.nickname']),
         secure_resource: true
-      }
+      },
+      timeout: 5000 // 타임아웃 설정 (5초)
     });
 
     const user = userResponse.data;
@@ -77,9 +78,13 @@ app.get('/auth/kakao/callback', async (req, res) => {
 // 출근 기록 추가
 app.post('/checkin', async (req, res) => {
   try {
-    const { botUserKey } = req.body;
+    const { botUserKey } = req.body.params || req.body.action?.params;
+    if (!botUserKey) {
+      return res.status(400).json({ message: 'botUserKey is required.' });
+    }
+
     const attendance = new Attendance({
-      userId: botUserKey, // userId를 botUserKey로 변경
+      userId: botUserKey,
       date: new Date(),
       status: 'IN'
     });
@@ -94,13 +99,17 @@ app.post('/checkin', async (req, res) => {
 // 출근 취소 기록 추가
 app.post('/checkout', async (req, res) => {
   try {
-    const { botUserKey } = req.body;
+    const { botUserKey } = req.body.params || req.body.action?.params;
+    if (!botUserKey) {
+      return res.status(400).json({ message: 'botUserKey is required.' });
+    }
+
     const today = new Date();
     const startDate = new Date(today.setHours(0, 0, 0, 0));
     const endDate = new Date(today.setHours(23, 59, 59, 999));
-    
+
     const checkInRecord = await Attendance.findOne({
-      userId: botUserKey, // userId를 botUserKey로 변경
+      userId: botUserKey,
       status: 'IN',
       date: {
         $gte: startDate,
@@ -128,9 +137,9 @@ app.get('/attendance/:botUserKey/:month', async (req, res) => {
     const [year, monthNumber] = month.split('-').map(Number);
     const startDate = new Date(year, monthNumber - 1, 1);
     const endDate = new Date(year, monthNumber, 0);
-    
+
     const attendanceRecords = await Attendance.find({
-      userId: botUserKey, // userId를 botUserKey로 변경
+      userId: botUserKey,
       date: {
         $gte: startDate,
         $lte: endDate
