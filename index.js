@@ -124,8 +124,8 @@ app.post('/checkin', async (req, res) => {
                 outputs: [{
                     simpleText: {
                         text: `${formattedDate} 출근하셨습니다.`
-                    }]
-                }
+                    }
+                }]
             }
         });
     } catch (error) {
@@ -133,6 +133,7 @@ app.post('/checkin', async (req, res) => {
         res.status(500).json({ error: 'Check-in failed.' });
     }
 });
+
 
   // 출근 취소 기록 추가
   app.post('/checkout', async (req, res) => {
