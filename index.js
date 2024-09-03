@@ -69,7 +69,7 @@ app.post('/leehoyoung', (req, res) => {
             template: {
                 outputs: [{
                     simpleText: {
-                        text: 이호영님 안녕하세요 휴무일 기록하시려면 휴무라고 적어주세요.
+                        text: '이호영님 안녕하세요. 휴무일을 기록하시려면 "휴무"라고 적어주세요.'
                     }
                 }]
             }
@@ -80,6 +80,7 @@ app.post('/leehoyoung', (req, res) => {
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });
+
 
 // 출근 기록 추가
 app.post('/checkin', async (req, res) => {
