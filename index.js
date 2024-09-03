@@ -126,7 +126,7 @@ app.post('/checkout', async (req, res) => {
 app.post('/attendance', async (req, res) => {
     try {
       const userId = req.body.userRequest?.user?.id; // userId를 요청에서 가져옵니다
-      const month = '2024-09'; // 예시로 정의된 월, 실제 요청 시 적절한 값을 제공해야 합니다
+      const month = req.body.action?.params?.month || '2024-09'; // 월 값을 요청에서 가져옵니다. 기본값 설정.
   
       if (!userId) {
         return res.status(400).json({ message: 'userId is required.' });
@@ -135,6 +135,7 @@ app.post('/attendance', async (req, res) => {
       const [year, monthNumber] = month.split('-').map(Number);
       const startDate = new Date(year, monthNumber - 1, 1);
       const endDate = new Date(year, monthNumber, 0);
+      
       const attendanceRecords = await Attendance.find({
         userId,
         date: {
@@ -142,6 +143,19 @@ app.post('/attendance', async (req, res) => {
           $lte: endDate
         }
       });
+  
+      if (attendanceRecords.length === 0) {
+        return res.json({
+          version: "2.0",
+          template: {
+            outputs: [{
+              simpleText: {
+                text: `${month}월의 출근 기록이 없습니다.`
+              }
+            }]
+          }
+        });
+      }
   
       const dates = attendanceRecords.map(record => record.date.toISOString().split('T')[0]).join(', ');
       const responseText = `${month}월의 출근 날짜: ${dates}`;
@@ -161,6 +175,7 @@ app.post('/attendance', async (req, res) => {
       res.status(500).json({ error: '출근 기록을 가져오는 데 실패했습니다.' });
     }
   });
+  
 
 // 헬스 체크 엔드포인트
 app.get('/health', (req, res) => {
