@@ -59,7 +59,7 @@ mongoose.connect(process.env.MONGODB_URI)
 // 출근 기록 추가
 app.post('/checkin', async (req, res) => {
     try {
-      const botUserKey = req.body.userRequest?.user?.id;  // userRequest.user.id로부터 botUserKey를 추출
+      const botUserKey = req.body.userRequest?.user?.id;
   
       if (!botUserKey) {
         return res.status(400).json({ message: 'botUserKey is required.' });
@@ -73,43 +73,42 @@ app.post('/checkin', async (req, res) => {
       await attendance.save();
   
       const checkinDate = new Date();
-      const formattedDate = `${checkinDate.getFullYear()}년 ${checkinDate.getMonth() + 1}월 ${checkinDate.getDate()}일`;
+      const formattedDate = `${checkinDate.getMonth() + 1}월 ${checkinDate.getDate()}일`;
   
       res.json({
         version: "2.0",
-        data: {
-          msg: `${formattedDate} 출근하셨습니다.`
+        template: {
+          outputs: [{
+            simpleText: {
+              text: `${formattedDate} 출근하셨습니다.`
+            }
+          }]
         }
       });
     } catch (error) {
-      console.error('Error during check-in:', error.message);
+      console.error('Error during check-in:', error);
       res.status(500).json({ error: 'Check-in failed.' });
     }
   });
-
-    // 응답 설정을 참조하여 동적 메시지 생성
-    const responseMessage = `성공적으로 출근되었습니다. 날짜: ${formattedDate}`;
-    
-    res.status(201).json({
-      message: responseMessage,
-      // 기타 응답 설정 관련 데이터가 있을 수 있습니다.
-    });
-  } catch (error) {
-    console.error('Error during check-in:', error.message);
-    res.status(500).json({ error: 'Check-in failed.' });
-  }
-});
+  
 
 // 출근 취소 기록 추가
 app.post('/checkout', async (req, res) => {
   try {
     const botUserKey = req.body.action?.params?.botUserKey;
+    const responseType = req.body.responseType; // 응답 형식 (예: 'json' 또는 'text')
+
     if (!botUserKey) {
+      if (responseType === 'text') {
+        return res.status(400).send('botUserKey is required.');
+      }
       return res.status(400).json({ message: 'botUserKey is required.' });
     }
+
     const today = new Date();
     const startDate = new Date(today.setHours(0, 0, 0, 0));
     const endDate = new Date(today.setHours(23, 59, 59, 999));
+    
     const checkInRecord = await Attendance.findOne({
       userId: botUserKey,
       status: 'IN',
@@ -118,22 +117,37 @@ app.post('/checkout', async (req, res) => {
         $lte: endDate
       }
     });
+
     if (!checkInRecord) {
+      if (responseType === 'text') {
+        return res.status(400).send('No check-in record found for today.');
+      }
       return res.status(400).json({ message: 'No check-in record found for today.' });
     }
+
     checkInRecord.status = 'OUT';
     await checkInRecord.save();
-    res.status(200).json({ message: 'Checked out successfully!' });
+
+    if (responseType === 'text') {
+      return res.status(200).send('Checked out successfully!');
+    }
+    return res.status(200).json({ message: 'Checked out successfully!' });
+
   } catch (error) {
     console.error('Error during check-out:', error.message);
-    res.status(500).json({ error: 'Check-out failed.' });
+
+    if (responseType === 'text') {
+      return res.status(500).send('Check-out failed.');
+    }
+    return res.status(500).json({ error: 'Check-out failed.' });
   }
 });
 
+
 // 월 단위 출근 현황 조회
-app.get('/attendance/:userId/:month', async (req, res) => {
+app.post('/attendance', async (req, res) => {
   try {
-    const { userId, month } = req.params;
+    const { userId, month } = req.body.action.params;
     const [year, monthNumber] = month.split('-').map(Number);
     const startDate = new Date(year, monthNumber - 1, 1);
     const endDate = new Date(year, monthNumber, 0);
@@ -144,12 +158,26 @@ app.get('/attendance/:userId/:month', async (req, res) => {
         $lte: endDate
       }
     });
-    res.status(200).json(attendanceRecords);
+
+    const dates = attendanceRecords.map(record => record.date.toISOString().split('T')[0]).join(', ');
+    const responseText = `${month}월의 출근 날짜: ${dates}`;
+
+    res.json({
+      version: "2.0",
+      template: {
+        outputs: [{
+          simpleText: {
+            text: responseText
+          }
+        }]
+      }
+    });
   } catch (error) {
     console.error('Error fetching attendance records:', error.message);
     res.status(500).json({ error: 'Failed to fetch attendance records.' });
   }
 });
+
 
 // 헬스 체크 엔드포인트
 app.get('/health', (req, res) => {
