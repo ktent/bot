@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
 const mongoose = require('mongoose');
@@ -12,7 +13,7 @@ const port = process.env.PORT || 3000;
 app.use(cors({
   origin: '*',
   methods: ['GET', 'POST'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type']
 }));
 
 app.use(bodyParser.json());
@@ -28,51 +29,6 @@ mongoose.connect(process.env.MONGODB_URI, {
 })
 .catch((error) => {
   console.error('MongoDB connection error:', error.message);
-});
-
-// 카카오 로그인 인증
-app.get('/auth/kakao', (req, res) => {
-  const authUrl = `https://kauth.kakao.com/oauth/authorize?client_id=${process.env.KAKAO_CLIENT_ID}&redirect_uri=${process.env.KAKAO_REDIRECT_URI}&response_type=code`;
-  res.redirect(authUrl);
-});
-
-app.get('/auth/kakao/callback', async (req, res) => {
-  const { code } = req.query;
-
-  try {
-    const tokenResponse = await axios.post('https://kauth.kakao.com/oauth/token', null, {
-      params: {
-        grant_type: 'authorization_code',
-        client_id: process.env.KAKAO_CLIENT_ID,
-        client_secret: process.env.KAKAO_CLIENT_SECRET,
-        redirect_uri: process.env.KAKAO_REDIRECT_URI,
-        code
-      },
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      timeout: 5000 // 타임아웃 설정 (5초)
-    });
-
-    const accessToken = tokenResponse.data.access_token;
-
-    const userResponse = await axios.get('https://kapi.kakao.com/v2/user/me', {
-      headers: {
-        Authorization: `Bearer ${accessToken}`
-      },
-      params: {
-        property_keys: JSON.stringify(['kakao_account.profile.nickname']),
-        secure_resource: true
-      },
-      timeout: 5000 // 타임아웃 설정 (5초)
-    });
-
-    const user = userResponse.data;
-    res.json(user);
-  } catch (error) {
-    console.error('Error during Kakao authentication:', error.message);
-    res.status(500).json({ error: 'Kakao authentication failed.' });
-  }
 });
 
 // 출근 기록 추가
