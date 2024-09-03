@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const attendanceSchema = new mongoose.Schema({
   userId: {
     type: String,
-    required: true, // userId 필드는 필수입니다.
+    required: true, // userId는 필수입니다.
   },
   date: {
     type: Date,
