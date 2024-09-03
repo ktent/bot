@@ -65,18 +65,25 @@ app.post('/checkin', async (req, res) => {
         return res.status(400).json({ message: 'botUserKey is required.' });
       }
   
-      const attendance = new Attendance({
-        userId: botUserKey,  // botUserKey를 userId로 설정
-        date: new Date(),
-        status: 'IN'
-      });
-      await attendance.save();
-      res.status(201).json({ message: 'Checked in successfully!' });
-    } catch (error) {
-      console.error('Error during check-in:', error.message);
-      res.status(500).json({ error: 'Check-in failed.' });
-    }
-  });
+      const now = new Date();
+    const formattedDate = now.toLocaleDateString('ko-KR', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+
+    const attendance = new Attendance({
+      userId: botUserKey,
+      date: now,
+      status: 'IN'
+    });
+    await attendance.save();
+    res.status(201).json({ message: `성공적으로 출근되었습니다. 날짜: ${formattedDate}` });
+  } catch (error) {
+    console.error('Error during check-in:', error.message);
+    res.status(500).json({ error: 'Check-in failed.' });
+  }
+});
 
 // 출근 취소 기록 추가
 app.post('/checkout', async (req, res) => {
