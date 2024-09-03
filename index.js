@@ -123,25 +123,44 @@ app.post('/checkout', async (req, res) => {
 });
 
 // 월 단위 출근 현황 조회
-app.get('/attendance/:userId/:month', async (req, res) => {
-  try {
-    const { userId, month } = req.params;
-    const [year, monthNumber] = month.split('-').map(Number);
-    const startDate = new Date(year, monthNumber - 1, 1);
-    const endDate = new Date(year, monthNumber, 0);
-    const attendanceRecords = await Attendance.find({
-      userId,
-      date: {
-        $gte: startDate,
-        $lte: endDate
+app.post('/attendance', async (req, res) => {
+    try {
+      const userId = req.body.userRequest?.user?.id; // userId를 요청에서 가져옵니다
+      const month = '2024-09'; // 예시로 정의된 월, 실제 요청 시 적절한 값을 제공해야 합니다
+  
+      if (!userId) {
+        return res.status(400).json({ message: 'userId is required.' });
       }
-    });
-    res.status(200).json(attendanceRecords);
-  } catch (error) {
-    console.error('Error fetching attendance records:', error.message);
-    res.status(500).json({ error: 'Failed to fetch attendance records.' });
-  }
-});
+  
+      const [year, monthNumber] = month.split('-').map(Number);
+      const startDate = new Date(year, monthNumber - 1, 1);
+      const endDate = new Date(year, monthNumber, 0);
+      const attendanceRecords = await Attendance.find({
+        userId,
+        date: {
+          $gte: startDate,
+          $lte: endDate
+        }
+      });
+  
+      const dates = attendanceRecords.map(record => record.date.toISOString().split('T')[0]).join(', ');
+      const responseText = `${month}월의 출근 날짜: ${dates}`;
+  
+      res.json({
+        version: "2.0",
+        template: {
+          outputs: [{
+            simpleText: {
+              text: responseText
+            }
+          }]
+        }
+      });
+    } catch (error) {
+      console.error('출근 기록을 가져오는 중 오류 발생:', error.message);
+      res.status(500).json({ error: '출근 기록을 가져오는 데 실패했습니다.' });
+    }
+  });
 
 // 헬스 체크 엔드포인트
 app.get('/health', (req, res) => {
