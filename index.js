@@ -91,16 +91,10 @@ app.post('/checkin', async (req, res) => {
             return res.status(400).json({ message: 'botUserKey is required.' });
         }
 
-        // botUserKey가 특정 값이면 사용자 이름으로 변경
-        if (botUserKey === '특정_값') {
-            botUserKey = '이호영';
-        }
-
         // 서울 시간대 설정
         const koreaTime = new Date().toLocaleString("en-US", { timeZone: "Asia/Seoul" });
         const currentDate = new Date(koreaTime);
 
-        // 오늘 날짜를 기준으로 체크인 기록 확인
         const startDate = new Date(currentDate.setHours(0, 0, 0, 0));
         const endDate = new Date(currentDate.setHours(23, 59, 59, 999));
 
@@ -117,7 +111,6 @@ app.post('/checkin', async (req, res) => {
             return res.status(400).json({ message: 'You have already checked in today.' });
         }
 
-        // 새로운 출근 기록 저장
         const attendance = new Attendance({
             userId: botUserKey,
             date: currentDate,
@@ -142,6 +135,7 @@ app.post('/checkin', async (req, res) => {
         res.status(500).json({ error: 'Check-in failed.' });
     }
 });
+
 
 
   // 출근 취소 기록 추가
